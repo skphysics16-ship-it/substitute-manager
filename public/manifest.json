@@ -1,6 +1,6 @@
 {
-  "name": "보강 관리 시스템",
-  "short_name": "보강관리",
+  "name": "Timetable",
+  "short_name": "Timetable",
   "description": "2026-1학기 자동 보강 시스템 및 학급별 시간표",
   "start_url": "/",
   "display": "standalone",
