@@ -3,10 +3,12 @@ import { DEFAULT_GROUPS } from './data/defaultGroups';
 import Timetable from './components/Timetable';
 import SubstitutePanel from './components/SubstitutePanel';
 import GroupEditor from './components/GroupEditor';
+import ClassTimetable from './components/ClassTimetable';
 
 const STORAGE_KEY = 'substitute_groups';
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState('substitute');
   const [groups, setGroups] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -54,45 +56,91 @@ export default function App() {
         justifyContent: 'space-between',
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
       }}>
-        <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.3px' }}>
-          2026-1학기 자동 보강 시스템
-        </span>
-        <button
-          onClick={() => setShowGroupEditor(true)}
-          style={{
-            background: 'rgba(255,255,255,0.15)',
-            border: '1px solid rgba(255,255,255,0.3)',
-            color: '#fff',
-            borderRadius: 6,
-            padding: '6px 14px',
-            cursor: 'pointer',
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
-          교과 계열 편집
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
+          <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.3px' }}>
+            2026-1학기 자동 보강 시스템
+          </span>
+          
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setActiveTab('substitute')}
+              style={{
+                background: activeTab === 'substitute' ? 'rgba(255,255,255,0.2)' : 'transparent',
+                border: 'none',
+                color: activeTab === 'substitute' ? '#fff' : 'rgba(255,255,255,0.6)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 600,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              보강 관리
+            </button>
+            <button
+              onClick={() => setActiveTab('class-timetable')}
+              style={{
+                background: activeTab === 'class-timetable' ? 'rgba(255,255,255,0.2)' : 'transparent',
+                border: 'none',
+                color: activeTab === 'class-timetable' ? '#fff' : 'rgba(255,255,255,0.6)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 600,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              전체 학급별 시간표
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'substitute' && (
+          <button
+            onClick={() => setShowGroupEditor(true)}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: '#fff',
+              borderRadius: 6,
+              padding: '6px 14px',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            교과 계열 편집
+          </button>
+        )}
       </header>
 
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflowX: 'auto', overflowY: 'auto' }}>
-          <Timetable
-            groups={groups}
-            selectedCell={selectedCell}
-            highlightedCandidate={highlightedCandidate}
-            onCellClick={handleCellClick}
-          />
-        </div>
+        {activeTab === 'substitute' ? (
+          <>
+            <div style={{ flex: 1, overflowX: 'auto', overflowY: 'auto' }}>
+              <Timetable
+                groups={groups}
+                selectedCell={selectedCell}
+                highlightedCandidate={highlightedCandidate}
+                onCellClick={handleCellClick}
+              />
+            </div>
 
-        {selectedCell && (
-          <SubstitutePanel
-            teacher={selectedCell.teacher}
-            slot={selectedCell.slot}
-            groups={groups}
-            highlightedCandidate={highlightedCandidate}
-            onSelectCandidate={setHighlightedCandidate}
-            onClose={handlePanelClose}
-          />
+            {selectedCell && (
+              <SubstitutePanel
+                teacher={selectedCell.teacher}
+                slot={selectedCell.slot}
+                groups={groups}
+                highlightedCandidate={highlightedCandidate}
+                onSelectCandidate={setHighlightedCandidate}
+                onClose={handlePanelClose}
+              />
+            )}
+          </>
+        ) : (
+          <ClassTimetable />
         )}
       </main>
 
