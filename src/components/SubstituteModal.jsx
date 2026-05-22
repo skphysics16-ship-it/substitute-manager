@@ -152,7 +152,7 @@ function CoverSection({ coverResult, groups }) {
   );
 }
 
-function SwapCard({ item, absentTeacher, absentSlot, absentSubj }) {
+function SwapCard({ item, absentTeacher, absentSlot }) {
   return (
     <div style={{ border: '1px solid #d0d0d0', borderRadius: 6, padding: '10px 14px', background: '#f9f9f9' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

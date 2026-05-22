@@ -225,7 +225,7 @@ function CoverSection({ coverResult, groups, highlightedCandidate, onCoverSelect
   );
 }
 
-function SwapCard({ item, absentTeacher, absentSlot, absentSubj, isSelected, onClick }) {
+function SwapCard({ item, absentTeacher, absentSlot, isSelected, onClick }) {
   return (
     <div
       onClick={onClick}
