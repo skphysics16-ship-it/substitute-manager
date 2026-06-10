@@ -13,6 +13,7 @@ const NO_BORDERS = {
   left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
   right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
 };
+const DIAGONAL_BORDER = { ...ALL_BORDERS, tl2br: BORDER };
 
 function cell(text, { bold = false, size = 22, align = AlignmentType.CENTER, w, rowSpan, colSpan, borders = ALL_BORDERS, vAlign = VerticalAlign.CENTER } = {}) {
   const props = {
@@ -34,14 +35,14 @@ function spacedName(name) {
   return name.split('').join(' ');
 }
 
-// Approval stamp table (floating, top-right corner)
+// Approval stamp table — floats at top-right, below the title
 function makeApprovalTable() {
   return new Table({
     float: {
       horizontalAnchor: TableAnchorType.PAGE,
       verticalAnchor: RelativeVerticalPosition.TEXT,
       absoluteHorizontalPosition: 5561,
-      absoluteVerticalPosition: 300,
+      absoluteVerticalPosition: 700,
       overlap: OverlapType.NEVER,
     },
     width: { size: 4542, type: WidthType.DXA },
@@ -60,14 +61,8 @@ function makeApprovalTable() {
         children: [
           cell('', { w: 1099 }),
           cell('', { w: 1099 }),
-          cell('', { w: 1172 }),
-          cell('', { w: 1172 }),
-        ],
-      }),
-      new TableRow({
-        height: { value: 400, rule: 'atLeast' },
-        children: [
-          cell('전결', { colSpan: 4 }),
+          cell('전결', { w: 1172, size: 20 }),
+          cell('', { w: 1172, borders: DIAGONAL_BORDER }),
         ],
       }),
     ],
@@ -76,8 +71,8 @@ function makeApprovalTable() {
 
 // Main data table
 function makeDataTable(rows) {
-  const COL_WIDTHS = [700, 900, 700, 700, 1000, 900, 2000, 1600];
-  const headerLabels = ['순', '구분', '월', '일', '학년 반', '차시', '교과명', '교과 담임'];
+  const COL_WIDTHS = [700, 900, 1200, 1000, 900, 2000, 1800];
+  const headerLabels = ['순', '구분', '날짜', '학년 반', '차시', '교과명', '교과 담임'];
 
   const headerRow = new TableRow({
     height: { value: 500, rule: 'atLeast' },
@@ -92,17 +87,15 @@ function makeDataTable(rows) {
       children: [
         cell(String(row.seq ?? ''), { w: COL_WIDTHS[0] }),
         cell(row.type ?? '', { w: COL_WIDTHS[1] }),
-        cell(row.month ? `${row.month}월` : '', { w: COL_WIDTHS[2] }),
-        cell(row.day ? `${row.day}일` : '', { w: COL_WIDTHS[3] }),
-        cell(row.cls ?? '', { w: COL_WIDTHS[4] }),
-        cell(row.period ?? '', { w: COL_WIDTHS[5] }),
-        cell(row.subject ?? '', { w: COL_WIDTHS[6], align: AlignmentType.LEFT }),
-        cell(row.teacher ?? '', { w: COL_WIDTHS[7] }),
+        cell(row.dateStr ?? '', { w: COL_WIDTHS[2] }),
+        cell(row.cls ?? '', { w: COL_WIDTHS[3] }),
+        cell(row.period ?? '', { w: COL_WIDTHS[4] }),
+        cell(row.subject ?? '', { w: COL_WIDTHS[5], align: AlignmentType.LEFT }),
+        cell(row.teacher ?? '', { w: COL_WIDTHS[6] }),
       ],
     })
   );
 
-  // Empty rows padding up to at least 5 rows total
   const padCount = Math.max(0, 5 - rows.length);
   const padRows = Array.from({ length: padCount }).map(() =>
     new TableRow({
@@ -118,7 +111,6 @@ function makeDataTable(rows) {
 }
 
 export async function generateSubstituteDoc({ rows, reason, teacherName, date, fileName }) {
-  // Parse date for display
   let yearStr = '', monthStr = '', dayStr = '';
   if (date) {
     const d = new Date(date);
@@ -135,9 +127,7 @@ export async function generateSubstituteDoc({ rows, reason, teacherName, date, f
         },
       },
       children: [
-        makeApprovalTable(),
-
-        // Title
+        // Title at the top
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 200, after: 400 },
@@ -148,6 +138,9 @@ export async function generateSubstituteDoc({ rows, reason, teacherName, date, f
             font: { name: '굴림' },
           })],
         }),
+
+        // Approval table floats to top-right (below title)
+        makeApprovalTable(),
 
         makeDataTable(rows),
 
@@ -161,7 +154,7 @@ export async function generateSubstituteDoc({ rows, reason, teacherName, date, f
           })],
         }),
 
-        // Date and signature
+        // Date
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           spacing: { before: 400, after: 0 },
@@ -171,6 +164,8 @@ export async function generateSubstituteDoc({ rows, reason, teacherName, date, f
             font: { name: '굴림' },
           })],
         }),
+
+        // Signature
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           spacing: { before: 200, after: 0 },

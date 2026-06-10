@@ -17,6 +17,10 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function toDateStr(d) {
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
 function getSwapDates(baseDate, slotDayCode) {
   const baseDay = baseDate.getDay();
   const targetDay = DAY_NUM[slotDayCode];
@@ -47,6 +51,7 @@ let uid = Date.now();
 
 export default function SubstituteDocForm({ groups = {} }) {
   const [teacherKey, setTeacherKey] = useState('');
+  const [teacherSearch, setTeacherSearch] = useState('');
   const [date, setDate] = useState(todayStr());
   const [reason, setReason] = useState('');
   const [expandedSlot, setExpandedSlot] = useState(null);
@@ -55,6 +60,38 @@ export default function SubstituteDocForm({ groups = {} }) {
   const absentName = teacherKey ? getTeacherName(teacherKey) : '';
   const baseDate = date ? new Date(date) : null;
   const dayCode = baseDate ? DAY_CODES[baseDate.getDay()] : '';
+
+  const handleTeacherSelect = (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setTeacherKey('');
+      setExpandedSlot(null);
+      setTableRows([]);
+      return;
+    }
+    const exact = TEACHER_ORDER.find(k => getTeacherName(k) === trimmed);
+    if (exact) {
+      setTeacherKey(exact);
+      setExpandedSlot(null);
+      setTableRows([]);
+    }
+  };
+
+  const handleTeacherKeyDown = (e) => {
+    if (e.key !== 'Enter') return;
+    const trimmed = teacherSearch.trim();
+    if (!trimmed) return;
+    const exact = TEACHER_ORDER.find(k => getTeacherName(k) === trimmed);
+    const partial = !exact && TEACHER_ORDER.find(k => getTeacherName(k).includes(trimmed));
+    const match = exact || partial;
+    if (match) {
+      const name = getTeacherName(match);
+      setTeacherSearch(name);
+      setTeacherKey(match);
+      setExpandedSlot(null);
+      setTableRows([]);
+    }
+  };
 
   const absentClasses = useMemo(() => {
     if (!teacherKey || !date || !dayCode) return [];
@@ -82,20 +119,22 @@ export default function SubstituteDocForm({ groups = {} }) {
 
   const addSwap = (absentClass, swapCandidate, swapDate) => {
     const absentDate = new Date(date);
+    const absentDateStr = toDateStr(absentDate);
+    const swapDateStr = toDateStr(swapDate);
     setTableRows(prev => {
       const itemIdx = getNextItemIdx(prev);
       return [...prev,
         {
           id: ++uid, itemIdx,
           seq: String(itemIdx), type: '교체',
-          month: String(absentDate.getMonth() + 1), day: String(absentDate.getDate()),
+          dateStr: absentDateStr,
           cls: absentClass.cls, period: slotToPeriod(absentClass.slot),
           subject: absentClass.subj, teacher: absentName,
         },
         {
           id: ++uid, itemIdx,
           seq: '', type: '교체',
-          month: String(swapDate.getMonth() + 1), day: String(swapDate.getDate()),
+          dateStr: swapDateStr,
           cls: swapCandidate.swapCls, period: slotToPeriod(swapCandidate.swapSlot),
           subject: swapCandidate.swapSubj, teacher: getTeacherName(swapCandidate.swapTeacher),
         },
@@ -105,15 +144,25 @@ export default function SubstituteDocForm({ groups = {} }) {
 
   const addCover = (absentClass, coverTeacherKey) => {
     const absentDate = new Date(date);
+    const dateStr = toDateStr(absentDate);
     setTableRows(prev => {
       const itemIdx = getNextItemIdx(prev);
-      return [...prev, {
-        id: ++uid, itemIdx,
-        seq: String(itemIdx), type: '보강',
-        month: String(absentDate.getMonth() + 1), day: String(absentDate.getDate()),
-        cls: absentClass.cls, period: slotToPeriod(absentClass.slot),
-        subject: absentClass.subj, teacher: absentName,
-      }];
+      return [...prev,
+        {
+          id: ++uid, itemIdx,
+          seq: String(itemIdx), type: '보강',
+          dateStr,
+          cls: absentClass.cls, period: slotToPeriod(absentClass.slot),
+          subject: absentClass.subj, teacher: absentName,
+        },
+        {
+          id: ++uid, itemIdx,
+          seq: '', type: '보강',
+          dateStr,
+          cls: absentClass.cls, period: slotToPeriod(absentClass.slot),
+          subject: absentClass.subj, teacher: getTeacherName(coverTeacherKey),
+        },
+      ];
     });
   };
 
@@ -127,6 +176,7 @@ export default function SubstituteDocForm({ groups = {} }) {
 
   const handleReset = () => {
     setTeacherKey('');
+    setTeacherSearch('');
     setDate(todayStr());
     setReason('');
     setExpandedSlot(null);
@@ -134,13 +184,9 @@ export default function SubstituteDocForm({ groups = {} }) {
   };
 
   const handleCopy = () => {
-    const header = ['순', '구분', '월', '일', '학년반', '교시', '교과명', '교과담임'].join('\t');
+    const header = ['순', '구분', '날짜', '학년반', '교시', '교과명', '교과담임'].join('\t');
     const body = tableRows.map(r =>
-      [r.seq, r.type,
-        r.month ? r.month + '월' : '',
-        r.day ? r.day + '일' : '',
-        r.cls, r.period, r.subject, r.teacher,
-      ].join('\t')
+      [r.seq, r.type, r.dateStr ?? '', r.cls, r.period, r.subject, r.teacher].join('\t')
     ).join('\n');
     navigator.clipboard.writeText(header + '\n' + body);
   };
@@ -164,22 +210,8 @@ export default function SubstituteDocForm({ groups = {} }) {
         결보강 계획서 작성
       </h2>
 
-      {/* Search controls */}
+      {/* Search controls — date first, then teacher */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div>
-          <label style={labelStyle}>결강 교사</label>
-          <select
-            value={teacherKey}
-            onChange={e => { setTeacherKey(e.target.value); setExpandedSlot(null); setTableRows([]); }}
-            style={selectStyle}
-          >
-            <option value="">교사 선택</option>
-            {TEACHER_ORDER.map(key => (
-              <option key={key} value={key}>{getTeacherName(key)}</option>
-            ))}
-          </select>
-        </div>
-
         <div>
           <label style={labelStyle}>결강 날짜</label>
           <input
@@ -188,6 +220,28 @@ export default function SubstituteDocForm({ groups = {} }) {
             onChange={e => { setDate(e.target.value); setExpandedSlot(null); setTableRows([]); }}
             style={inputStyle}
           />
+        </div>
+
+        <div>
+          <label style={labelStyle}>결강 교사</label>
+          <input
+            type="text"
+            list="teacher-datalist"
+            value={teacherSearch}
+            onChange={e => {
+              const val = e.target.value;
+              setTeacherSearch(val);
+              handleTeacherSelect(val);
+            }}
+            onKeyDown={handleTeacherKeyDown}
+            placeholder="이름 입력 후 Enter"
+            style={{ ...inputStyle, minWidth: 160 }}
+          />
+          <datalist id="teacher-datalist">
+            {TEACHER_ORDER.map(key => (
+              <option key={key} value={getTeacherName(key)} />
+            ))}
+          </datalist>
         </div>
 
         <div style={{ flex: 1, minWidth: 200 }}>
@@ -241,8 +295,7 @@ export default function SubstituteDocForm({ groups = {} }) {
           <colgroup>
             <col style={{ width: 40 }} />
             <col style={{ width: 68 }} />
-            <col style={{ width: 48 }} />
-            <col style={{ width: 48 }} />
+            <col style={{ width: 96 }} />
             <col style={{ width: 72 }} />
             <col style={{ width: 68 }} />
             <col />
@@ -251,7 +304,7 @@ export default function SubstituteDocForm({ groups = {} }) {
           </colgroup>
           <thead>
             <tr style={{ background: '#1a1d2e', color: '#fff' }}>
-              {['순', '구분', '월', '일', '학년반', '교시', '교과명', '교과담임', ''].map((h, i) => (
+              {['순', '구분', '날짜', '학년반', '교시', '교과명', '교과담임', ''].map((h, i) => (
                 <th key={i} style={{ padding: '10px 8px', fontWeight: 600, textAlign: 'center', fontSize: 13, borderRight: '1px solid rgba(255,255,255,0.15)' }}>{h}</th>
               ))}
             </tr>
@@ -259,7 +312,7 @@ export default function SubstituteDocForm({ groups = {} }) {
           <tbody>
             {tableRows.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '28px', color: '#aaa', fontSize: 13 }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '28px', color: '#aaa', fontSize: 13 }}>
                   위에서 교시를 클릭하고 보강/교체를 선택하면 여기에 반영됩니다
                 </td>
               </tr>
@@ -273,10 +326,7 @@ export default function SubstituteDocForm({ groups = {} }) {
                     {row.type}
                   </td>
                   <td style={tdStyle}>
-                    <input value={row.month} onChange={e => updateRow(row.id, 'month', e.target.value)} style={cellInputStyle} />
-                  </td>
-                  <td style={tdStyle}>
-                    <input value={row.day} onChange={e => updateRow(row.id, 'day', e.target.value)} style={cellInputStyle} />
+                    <input value={row.dateStr ?? ''} onChange={e => updateRow(row.id, 'dateStr', e.target.value)} style={cellInputStyle} />
                   </td>
                   <td style={tdStyle}>
                     <input value={row.cls} onChange={e => updateRow(row.id, 'cls', e.target.value)} style={cellInputStyle} />
@@ -353,7 +403,6 @@ function PeriodCard({ absentClass, baseDate, isExpanded, onToggle, onAddSwap, on
 
   return (
     <div style={{ border: '1px solid #dde', borderRadius: 8, overflow: 'hidden' }}>
-      {/* Card header */}
       <div
         onClick={onToggle}
         style={{
@@ -377,11 +426,9 @@ function PeriodCard({ absentClass, baseDate, isExpanded, onToggle, onAddSwap, on
         <span style={{ fontSize: 11, opacity: 0.7 }}>{isExpanded ? '▲' : '▼'}</span>
       </div>
 
-      {/* Expanded content */}
       {isExpanded && (
         <div style={{ padding: '16px', background: '#fff', borderTop: '1px solid #eee' }}>
 
-          {/* Swap candidates — 1학년 only */}
           {grade === 1 && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 12, color: '#1565c0', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
@@ -416,7 +463,6 @@ function PeriodCard({ absentClass, baseDate, isExpanded, onToggle, onAddSwap, on
             </div>
           )}
 
-          {/* Cover candidates */}
           <div>
             <div style={{ fontWeight: 700, fontSize: 12, color: '#2e7d32', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
               보강 가능 ({allCoverCount}명)
@@ -463,7 +509,6 @@ function PeriodCard({ absentClass, baseDate, isExpanded, onToggle, onAddSwap, on
 }
 
 const labelStyle = { display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 5, color: '#555' };
-const selectStyle = { padding: '8px 10px', border: '1px solid #ccc', borderRadius: 6, fontSize: 14, minWidth: 160, background: '#fff' };
 const inputStyle = { padding: '8px 10px', border: '1px solid #ccc', borderRadius: 6, fontSize: 14 };
 const tdStyle = { padding: '3px 5px', borderBottom: '1px solid #eee', borderRight: '1px solid #eee' };
 const cellInputStyle = { width: '100%', border: '1px solid #e0e0e0', borderRadius: 3, padding: '4px 5px', fontSize: 13, boxSizing: 'border-box', background: 'transparent' };
