@@ -41,28 +41,26 @@ function makeApprovalTable() {
     float: {
       horizontalAnchor: TableAnchorType.PAGE,
       verticalAnchor: RelativeVerticalPosition.TEXT,
-      absoluteHorizontalPosition: 5561,
+      absoluteHorizontalPosition: 6300,
       absoluteVerticalPosition: 700,
       overlap: OverlapType.NEVER,
     },
-    width: { size: 4542, type: WidthType.DXA },
+    width: { size: 3443, type: WidthType.DXA },
     rows: [
       new TableRow({
         height: { value: 400, rule: 'atLeast' },
         children: [
           cell('계', { w: 1099 }),
-          cell('부장', { w: 1099 }),
+          cell('부장', { w: 1172 }),
           cell('교감', { w: 1172 }),
-          cell('교장', { w: 1172 }),
         ],
       }),
       new TableRow({
         height: { value: 700, rule: 'atLeast' },
         children: [
           cell('', { w: 1099 }),
-          cell('', { w: 1099 }),
+          cell('', { w: 1172 }),
           cell('전결', { w: 1172, size: 20 }),
-          cell('', { w: 1172, borders: DIAGONAL_BORDER }),
         ],
       }),
     ],
@@ -130,10 +128,10 @@ export async function generateSubstituteDoc({ rows, reason, teacherName, date, f
         // Title at the top
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { before: 200, after: 400 },
+          spacing: { before: 400, after: 600 },
           children: [new TextRun({
             text: '보강  수업 계획서',
-            size: 32,
+            size: 36,
             bold: true,
             font: { name: '굴림' },
           })],
@@ -141,6 +139,9 @@ export async function generateSubstituteDoc({ rows, reason, teacherName, date, f
 
         // Approval table floats to top-right (below title)
         makeApprovalTable(),
+
+        // Spacer between title and data table
+        new Paragraph({ spacing: { before: 0, after: 300 }, children: [] }),
 
         makeDataTable(rows),
 
