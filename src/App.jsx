@@ -4,6 +4,7 @@ import Timetable from './components/Timetable';
 import SubstitutePanel from './components/SubstitutePanel';
 import GroupEditor from './components/GroupEditor';
 import ClassTimetable from './components/ClassTimetable';
+import SubstituteDocForm from './components/SubstituteDocForm';
 
 const STORAGE_KEY = 'substitute_groups';
 
@@ -94,6 +95,22 @@ export default function App() {
             >
               전체 학급별 시간표
             </button>
+            <button
+              onClick={() => setActiveTab('doc-form')}
+              style={{
+                background: activeTab === 'doc-form' ? 'rgba(255,255,255,0.2)' : 'transparent',
+                border: 'none',
+                color: activeTab === 'doc-form' ? '#fff' : 'rgba(255,255,255,0.6)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 600,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              결보강 계획서
+            </button>
           </div>
         </div>
 
@@ -139,8 +156,12 @@ export default function App() {
               />
             )}
           </>
-        ) : (
+        ) : activeTab === 'class-timetable' ? (
           <ClassTimetable />
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <SubstituteDocForm />
+          </div>
         )}
       </main>
 
