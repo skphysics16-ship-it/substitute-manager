@@ -160,7 +160,7 @@ export default function App() {
           <ClassTimetable />
         ) : (
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <SubstituteDocForm />
+            <SubstituteDocForm groups={groups} />
           </div>
         )}
       </main>
